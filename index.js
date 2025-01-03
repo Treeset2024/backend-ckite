@@ -2,15 +2,15 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
-const routes = require('./Routes/index');
+const routes = require('./Routes/Mainindex');
 const compression = require('compression');
 const cors = require('cors'); // Import cors
 //const questionRoutes = require('../Routes/questionsroutes');
 const userRoutes = require('./Routes/expressroutes');
 const YouTubeLinkRoutes = require('./Routes/YouTuberoutes');
 const GroupDiscussionRoutes = require('./Routes/gdroute');
-const Results=require('./Routes/resultsroutes');
-const Registration=require('./Routes/registerroutes');
+const Results = require('./Routes/resultsroutes');
+const Registration = require('./Routes/registerroutes');
 
 
 const app = express();
@@ -45,8 +45,8 @@ mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('MongoDB connected successfully'))
-.catch((err) => console.error('MongoDB connection error:', err));
+  .then(() => console.log('MongoDB connected successfully'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
 
 // Routes
@@ -54,8 +54,8 @@ app.use('/api/v1', routes);
 app.use('/api/v1', userRoutes);
 app.use('/api/v1', YouTubeLinkRoutes);
 app.use('/api/v1', GroupDiscussionRoutes);
-app.use('/api/v1',Registration);
-app.use('/api/v1',Results);
+app.use('/api/v1', Registration);
+app.use('/api/v1', Results);
 
 
 
