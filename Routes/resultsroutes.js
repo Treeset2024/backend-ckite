@@ -1,16 +1,11 @@
-const express = require('express');
-const resultController = require('../Controller/resultcontroller');
-
-
+/*const express = require('express');
 const router = express.Router();
+const userController = require('../Controller/resultcontroller');
 
+// POST: Store result for a logged-in user
+router.post('/storeResult', userController.storeResult);
 
-// POST route to save results
-router.post('/Result', resultController.addResult);
+// GET: Fetch all results for a user by email
+router.get('/results/:email', userController.getResultsByEmail);
 
-
-// GET route to fetch all results
-router.get('/Results', resultController.getAllResults);
-
-
-module.exports = router;
+module.exports = router;*/

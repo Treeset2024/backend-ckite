@@ -18,38 +18,38 @@ const groupDiscussionController = {
       res.status(400).json({ message: 'Error creating discussion', error: error.message });
     }
   },*/
-// Create multiple discussions in bulk
-createDiscussion: async (req, res) => {
-  try {
-    const discussions = req.body; // Expecting an array of discussion objects
+  // Create multiple discussions in bulk
+  createDiscussion: async (req, res) => {
+    try {
+      const discussions = req.body; // Expecting an array of discussion objects
 
-    // Ensure the request body is an array and not empty
-    if (!Array.isArray(discussions) || discussions.length === 0) {
-      return res.status(400).json({ message: 'Request body must be a non-empty array' });
-    }
+      // Ensure the request body is an array and not empty
+      if (!Array.isArray(discussions) || discussions.length === 0) {
+        return res.status(400).json({ message: 'Request body must be a non-empty array' });
+      }
 
-    // Check for missing fields in each discussion
-    const invalidDiscussions = discussions.filter(
-      (discussion) => !discussion.title || !discussion.videoUrl
-    );
-    if (invalidDiscussions.length > 0) {
-      return res.status(400).json({
-        message: 'One or more discussions are missing required fields (title, videoUrl)',
-        invalidDiscussions,
+      // Check for missing fields in each discussion
+      const invalidDiscussions = discussions.filter(
+        (discussion) => !discussion.title || !discussion.videoUrl
+      );
+      if (invalidDiscussions.length > 0) {
+        return res.status(400).json({
+          message: 'One or more discussions are missing required fields (title, videoUrl)',
+          invalidDiscussions,
+        });
+      }
+
+      // Insert valid discussions into the database
+      const newDiscussions = await GroupDiscussion.insertMany(discussions);
+
+      res.status(201).json({
+        message: 'Group discussions created successfully',
+        discussions: newDiscussions,
       });
+    } catch (error) {
+      res.status(400).json({ message: 'Error creating discussions', error: error.message });
     }
-
-    // Insert valid discussions into the database
-    const newDiscussions = await GroupDiscussion.insertMany(discussions);
-
-    res.status(201).json({
-      message: 'Group discussions created successfully',
-      discussions: newDiscussions,
-    });
-  } catch (error) {
-    res.status(400).json({ message: 'Error creating discussions', error: error.message });
-  }
-},
+  },
 
 
   // Get all group discussions with pagination

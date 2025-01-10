@@ -1,145 +1,213 @@
-/*const Registration = require('../model/Registration');
+// controllers/registrationController.js
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const Registration = require('../model/Registration');
 
-const registerUser = async (req, res) => {
-  const { name, email, college } = req.body;
+// Create new user (Register)
+const createUser = async (req, res) => {
+  let { firstName, lastName, email, phoneNumber, password, instituteName, stream, degree } = req.body;
+
+  // Convert fields to uppercase as required
+  firstName = firstName.toUpperCase();
+  lastName = lastName.toUpperCase();
+  instituteName = instituteName.toUpperCase();
+  stream = stream.toUpperCase();
+  degree = degree.toUpperCase();
+
+  // Convert email to lowercase
+  email = email.toLowerCase();
 
   try {
-    const user = new User({ name, email, college });
-    await user.save();
-    res.status(201).json({ message: 'User registered successfully', user });
+    // Check if user already exists
+    const userExists = await Registration.findOne({ $or: [{ email }, { phoneNumber }] });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Create the new user with modified data
+    const newUser = new Registration({ firstName, lastName, email, phoneNumber, password, instituteName, stream, degree });
+    await newUser.save();
+
+    res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
-    res.status(400).json({ message: 'Error registering user', error });
+    res.status(500).json({ message: 'Error registering user', error: error.message });
   }
 };
 
-const loginUser = async (req, res) => {
-  // Firebase handles authentication; this endpoint could verify user existence in DB
-  const { email } = req.body;
+// Add or update result for a user by email
+const addOrUpdateResult = async (req, res) => {
+  const { email } = req.params;
+  const {
+    subModuleName,
+    score,
+    maxScore,
+    percentage,
+    questionsAttempted,
+    totalQuestions,
+    timeTaken,
+    totalTime,
+    startTime,
+    endTime,
+  } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    // Find the user by email
+    const user = await Registration.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.status(200).json({ message: 'User logged in successfully', user });
+
+    // Add or update the result in the user's results array
+    const resultIndex = user.results.findIndex(result => result.subModuleName === subModuleName);
+    if (resultIndex === -1) {
+      // If result for this submodule doesn't exist, add it
+      user.results.push({
+        subModuleName,
+        score,
+        maxScore,
+        percentage,
+        questionsAttempted,
+        totalQuestions,
+        timeTaken,
+        totalTime,
+        startTime,
+        endTime,
+      });
+    } else {
+      // If result for this submodule exists, update it
+      user.results[resultIndex] = {
+        subModuleName,
+        score,
+        maxScore,
+        percentage,
+        questionsAttempted,
+        totalQuestions,
+        timeTaken,
+        totalTime,
+        startTime,
+        endTime,
+      };
+    }
+
+    // Save the updated user
+    await user.save();
+
+    res.status(200).json({ message: 'Result added/updated successfully', user });
   } catch (error) {
-    res.status(500).json({ message: 'Error logging in user', error });
+    res.status(500).json({ message: 'Error adding/updating result', error: error.message });
   }
 };
 
-module.exports = {  registerUser, loginUser };*/
-const Registration = require('../model/Registration'); // Import the model
+// Get a user's result by email and submodule name
+const getResultByEmailAndSubmodule = async (req, res) => {
+  const { email, subModuleName } = req.params;
 
-// Create a new user
-const createUser = async (req, res) => {
   try {
-    const { firstName, lastName, email, phoneNumber, instituteName, stream, password, enterPassword } = req.body;
-
-    // Validate passwords
-    if (password !== enterPassword) {
-      return res.status(400).json({ message: 'Passwords does not match' });
+    // Find the user by email
+    const user = await Registration.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // Create and save the user
-    const newUser = await Registration.create({
-      firstName,
-      lastName,
-      email,
-      phoneNumber,
-      instituteName,
-      stream,
-      password,
-      enterPassword,
-    });
+    // Find the result by submodule name
+    const result = user.results.find(result => result.subModuleName === subModuleName);
+    if (!result) {
+      return res.status(404).json({ message: `Result for submodule ${subModuleName} not found` });
+    }
 
-    res.status(201).json({ message: 'User registered successfully', data: newUser });
+    res.status(200).json({ result });
   } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({ message: 'Email already exists' });
-    }
-    res.status(500).json({ message: 'Error creating user', error: error.message });
+    res.status(500).json({ message: 'Error fetching result', error: error.message });
   }
 };
 
-// Get all users with pagination
+// Get all users
 const getUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query; // Pagination parameters
-
-    const options = {
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      sort: { createdAt: -1 }, // Sort by creation date (newest first)
-    };
-
-    const users = await Registration.paginate({}, options);
-    res.status(200).json(users);
+    const users = await Registration.find();
+    res.status(200).json({ users });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching users', error: error.message });
   }
 };
 
-// Get a single user by ID
-const getUserById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const user = await Registration.findById(id);
+// Get a single user by email
+const getUserByEmail = async (req, res) => {
+  const { email } = req.params;
 
+  try {
+    const user = await Registration.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
-    res.status(200).json(user);
+    res.status(200).json({ user });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching user', error: error.message });
   }
 };
 
-// Update a user by ID
-const updateUser = async (req, res) => {
+// Update a user by email
+const updateUserByEmail = async (req, res) => {
+  const { email } = req.params;
+  const updatedData = req.body;
+
   try {
-    const { id } = req.params;
-    const updatedData = req.body;
-
-    // Validate passwords if updated
-    if (updatedData.password && updatedData.enterPassword && updatedData.password !== updatedData.enterPassword) {
-      return res.status(400).json({ message: 'Passwords does not match' });
-    }
-
-    const updatedUser = await Registration.findByIdAndUpdate(id, updatedData, { new: true });
-
+    const updatedUser = await Registration.findOneAndUpdate({ email }, updatedData, { new: true });
     if (!updatedUser) {
       return res.status(404).json({ message: 'User not found' });
     }
-
-    res.status(200).json({ message: 'User updated successfully', data: updatedUser });
+    res.status(200).json({ message: 'User updated successfully', user: updatedUser });
   } catch (error) {
     res.status(500).json({ message: 'Error updating user', error: error.message });
   }
 };
 
-// Delete a user by ID
-const deleteUser = async (req, res) => {
+// Delete a user by email
+const deleteUserByEmail = async (req, res) => {
+  const { email } = req.params;
+
   try {
-    const { id } = req.params;
-
-    const deletedUser = await Registration.findByIdAndDelete(id);
-
+    const deletedUser = await Registration.findOneAndDelete({ email });
     if (!deletedUser) {
       return res.status(404).json({ message: 'User not found' });
     }
-
     res.status(200).json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting user', error: error.message });
   }
 };
 
-// Export all functions
+// Login user
+const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await Registration.findOne({ $or: [{ email }, { phoneNumber: email }] });
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ id: user._id }, 'mySecretKey1234!@#', { expiresIn: '1h' });
+    const { password: _, ...userData } = user.toObject(); // Hide password from response
+
+    res.status(200).json({ message: 'Login successful', token, data: userData });
+  } catch (error) {
+    res.status(500).json({ message: 'Error logging in', error: error.message });
+  }
+};
+
 module.exports = {
   createUser,
   getUsers,
-  getUserById,
-  updateUser,
-  deleteUser,
+  getUserByEmail,
+  updateUserByEmail,
+  deleteUserByEmail,
+  loginUser,
+  addOrUpdateResult,
+  getResultByEmailAndSubmodule,
 };

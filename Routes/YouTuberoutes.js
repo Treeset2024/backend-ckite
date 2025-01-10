@@ -50,53 +50,8 @@ router.get('/all', async (req, res) => {
 });
 
 // Export the router
-router.get('/submodules', async (req, res) => {
-  try {
-    const results = await YouTubeLink.find({}, { 
-      "submodules.submoduleName": 1, 
-      "submodules.videos.videoURL": 1 
-    });
 
-    res.status(200).json({
-      message: 'Submodule names with video URLs fetched successfully',
-      data: results,
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: 'Failed to fetch submodule names',
-      details: error.message,
-    });
-}
-});
 
-router.get('/submodules/:submoduleName', async (req, res) => {
-  try {
-    const { submoduleName } = req.params;
-
-    const result = await YouTubeLink.findOne(
-      { "submodules.submoduleName": submoduleName }, // Match the submodule by name
-      { 
-        "submodules.$": 1 // Use the $ projection operator to fetch only the matching submodule
-      }
-    );
-
-    if (!result || !result.submodules || result.submodules.length === 0) {
-      return res.status(404).json({
-        error: 'Submodule not found',
-      });
-    }
-
-    res.status(200).json({
-      message: 'Submodule fetched successfully',
-      data: result.submodules[0], // Return the matched submodule
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: 'Failed to fetch the submodule',
-      details: error.message,
-    });
-}
-});
 
 // Route: Fetch videos for a specific module
 router.get('/module/:moduleName', async (req, res) => {

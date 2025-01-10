@@ -1,21 +1,47 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 const { Schema } = mongoose;
-const mongoosePaginate = require('mongoose-paginate-v2');
 
-// Schema for User Information
-const registerSchema = new Schema({
-  firstName: { type: String, required: true },       // First name of the user
-  lastName: { type: String, required: true },        // Last name of the user
-  email: { type: String, required: true, unique: true }, // Unique email
-  phoneNumber: { type: String, required: true, unique: true }, // Unique phone number
-  instituteName: { type: String, required: false },  // Institute name (optional)
-  stream: { type: String, required: false },         // Stream or field of study (optional)
-  password: { type: String, required: true },        // Hashed password
-  enterPassword: { type: String, required: true }    // Entered password for confirmation (note: validate at application level)
+// Define Result schema
+const resultSchema = new Schema({
+  subModuleName: { type: String, required: true },
+  score: { type: Number, required: true },
+  maxScore: { type: Number, required: true },
+  percentage: { type: String, required: true },
+  questionsAttempted: { type: Number, required: true },
+  totalQuestions: { type: Number, required: true },
+  timeTaken: { type: String, required: true },
+  totalTime: { type: String, required: true },
+  startTime: { type: Date, required: true },
+  endTime: { type: Date, required: true },
 });
 
-// Apply pagination plugin
-registerSchema.plugin(mongoosePaginate);
+// Define Registration schema (user schema)
+const registerSchema = new Schema({
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  phoneNumber: { type: String, required: true, unique: true },
+  instituteName: { type: String, required: true },
+  stream: { type: String, required: true },
+  degree: { type: String, required: true },
+  password: { type: String, required: true },
+  results: [resultSchema],  // Array of results, linking results to the user
+}, { timestamps: true });
 
-// Export the model
+// Pre-save middleware to hash the password before saving
+registerSchema.pre('save', async function (next) {
+  if (this.isModified('password')) {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  }
+  next();
+});
+
+// Method to compare entered password with the stored hash
+registerSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Export the Registration model
 module.exports = mongoose.model('Registration', registerSchema);
